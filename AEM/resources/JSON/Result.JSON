@@ -1,0 +1,27 @@
+{
+	"QTE": {
+		"projectId": 56579,
+		"projectName": "POC for LT",
+		"jobStatus": "NOT_RUN",
+		"testRuns": [{
+			"Status": "Passed",
+			"Test Tier": "Tier 2",
+			"Build URL": null,
+			"Pid": "TR-244",
+			"CI Tool": null,
+			"Planned Start Date": "2017-11-21T22:37:04+00:00",
+			"Name": "com.aem.components.CIPageTest#SampleTest2",
+			"Build Number": null,
+			"Assigned To": "Saravanan Ravichandran",
+			"Browser Configuration": "IE",
+			"Run Order": null,
+			"BrowserStack": null,
+			"Execution Type": "Functional",
+			"Environment": null,
+			"Id": "27692997",
+			"Planned End Date": "2017-11-21T22:37:04+00:00"
+		}],
+		"testSuite": {}
+	},
+	"dynamic": {}
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AEM>
+  <PageName Name="HomePage">
+     <LnkClasses>//ul[@class='ltnav-submenu']/li/a</LnkClasses>
+     <LnkAllClasses>//a[text()='All Classes']</LnkAllClasses>
+     <LnkClass>//ul[@class='ltnav-submenu1']/li/a</LnkClass>
+     
+  </PageName>
+  <PageName Name="ClassSchedules">
+  	<LnkStudioCycle>//*[@id="main-content"]/div[4]/ui-view/section/div[2]/div[2]/div[2]/div[2]/div/div[2]/div/div[2]/a[1]</LnkStudioCycle>
+     
+  </PageName>
+</AEM>
