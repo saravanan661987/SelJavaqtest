@@ -62,6 +62,13 @@
     		<version>3.17</version>
     		<type>jar</type>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.qasymphony.qtest/qtest-sdk-java -->
+<dependency>
+    <groupId>com.qasymphony.qtest</groupId>
+    <artifactId>qtest-sdk-java</artifactId>
+    <version>1.4.2</version>
+</dependency>
+		
 	</dependencies>
 	<build>
     <testSourceDirectory>src/main/java</testSourceDirectory>    

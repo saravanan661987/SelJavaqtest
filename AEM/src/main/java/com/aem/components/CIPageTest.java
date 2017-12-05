@@ -26,7 +26,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
+import org.qas.qtest.api.services.execution.model.AutomationTestStepLog;
 
 import com.aem.utilities.CommonLib;
 import com.aem.pages.*;
@@ -50,8 +50,6 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure; 
 import org.junit.runner.notification.RunListener; 
 
-
-
 	
 	public class CIPageTest extends CommonLib {
 		
@@ -60,21 +58,25 @@ import org.junit.runner.notification.RunListener;
 		//ExtentReports extent = new ExtentReports (System.getProperty("user.dir") +"/test-output/STMExtentReport.html", true);
 		//ExtentTest Logger = extent.startTest("passTest");
 		//Result result;
+		//List<AutomationTestStepLog> log = new ArrayList<AutomationTestStepLog>();
 		static ExtentReports report = new ExtentReports("C:\\Report\\Test.html");
 		ExtentTest logger; 
 		
-		private static String config;
+		public static JSONObject config;
+		public static String testrunID;
 		
 		@BeforeClass
 		public static void Setup() throws ParseException, IOException
-		{			
-			config = getJobDetails();	
+		{	
+			
+			config = getConfiguration();	
+			System.out.println("testrunID" +config);
+			testrunID = (String) config.get("Id");	
+			System.out.println("testrunID" +testrunID);
 		}
 		
 		
-		public void OpenBrowser()  {			
-			//qtest obj = new qtest();
-			//obj.createTestcase();
+		public void OpenBrowser()  {					
 			
 			driver = getDriver("chrome", logger);			
 		
@@ -93,10 +95,12 @@ import org.junit.runner.notification.RunListener;
 				HomePage objHP = new HomePage();
 				ClassSchedules objCS = new ClassSchedules();
 				//List<Employee> emp = retriveValueFromDataBase();	
-				Assert.assertTrue(ElementExist(objHP.LnkClass(),logger));	
+				/*Assert.assertTrue(ElementExist(objHP.LnkClass(),logger));	
 				Assert.assertTrue(ElementClick(objHP.LnkClasses(),logger));		
 				Assert.assertTrue(ElementClick(objHP.LnkAllClasses(), logger));
-				Assert.assertTrue(ElementClick(objCS.LnkStudioCycle(), logger));
+				Assert.assertTrue(ElementClick(objCS.LnkStudioCycle(), logger));*/
+				Assert.assertTrue(ElementExist(objHP.LnkClass(),config));	
+				
 				CloseBrowser();	
 			}
 			catch(Exception e)
@@ -106,7 +110,7 @@ import org.junit.runner.notification.RunListener;
 					
 		}
 		
-		@Test
+		/*@Test
 		public void SampleTest2() throws SQLException, InterruptedException {
 			//extent.startTest("TC01.1","This test is a positive login test for ParaBank");
 		try
@@ -125,7 +129,7 @@ import org.junit.runner.notification.RunListener;
 			report.endTest(logger);		
 		}
 			
-		}
+		}*/
 
 		@After
 		public void CloseBrowser() {				
@@ -133,14 +137,24 @@ import org.junit.runner.notification.RunListener;
 			logger.log(LogStatus.PASS, "verify Browserclose" ,"Browser is closed successfully");
 			report.endTest(logger);		
 			driver.quit();
-				
+
+			
 		}
 		
 		
 		
 		@AfterClass
 		public static void SaveReport() {				
-			//driver.get("C:\\Report\\LearnAutomation.html");				
+			//driver.get("C:\\Report\\LearnAutomation.html");	
+			/*try {
+				//uploadReport();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
 			report.flush();
 			report.close();
 			System.out.println("text");

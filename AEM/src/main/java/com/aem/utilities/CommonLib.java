@@ -8,6 +8,7 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -24,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -62,6 +64,26 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.qas.api.ClientConfiguration;
+import org.qas.qtest.api.auth.QTestCredentials;
+import org.qas.qtest.api.services.attachment.model.Attachment;
+import org.qas.qtest.api.services.design.TestDesignService;
+import org.qas.qtest.api.services.design.TestDesignServiceClient;
+import org.qas.qtest.api.services.design.model.ListTestCaseRequest;
+import org.qas.qtest.api.services.design.model.TestCase;
+import org.qas.qtest.api.services.execution.TestExecutionService;
+import org.qas.qtest.api.services.execution.TestExecutionServiceClient;
+import org.qas.qtest.api.services.execution.model.AutomationTestLog;
+import org.qas.qtest.api.services.execution.model.AutomationTestLogRequest;
+import org.qas.qtest.api.services.execution.model.AutomationTestStepLog;
+import org.qas.qtest.api.services.execution.model.GetTestRunRequest;
+import org.qas.qtest.api.services.execution.model.ListTestRunRequest;
+import org.qas.qtest.api.services.execution.model.TestLog;
+import org.qas.qtest.api.services.execution.model.TestRun;
+import org.qas.qtest.api.services.project.ProjectService;
+import org.qas.qtest.api.services.project.ProjectServiceClient;
+import org.qas.qtest.api.services.project.model.ListProjectRequest;
+import org.qas.qtest.api.services.project.model.Project;
 //import org.qas.qtest.api.auth.PropertiesQTestCredentials;
 //import org.qas.qtest.api.auth.QTestCredentials;
 //import org.qas.qtest.api.services.design.TestDesignServiceClient;
@@ -102,7 +124,7 @@ public class CommonLib{
 	private static XSSFWorkbook xlWBook;
 	private static XSSFCell cell;
 	private static XSSFRow row;
-	
+	protected static List<AutomationTestStepLog> testStepLogs = new ArrayList<AutomationTestStepLog>();
 	
 //	static ExtentTest Logger = extent.startTest("passTest");
 	public static WebDriver getDriver(String config, ExtentTest logger)  {
@@ -126,13 +148,15 @@ public class CommonLib{
 
 		}else if (browser.toLowerCase().equals("windows 7 chrome"))
 		{
+			
 			DesiredCapabilities capability = new DesiredCapabilities();
             capability.setCapability("browser", "Chrome");
             capability.setCapability("browser_version", "34.0");
             capability.setCapability("os", "windows");
             capability.setCapability("os_version", "7");
             capability.setCapability("build", "qtestPOC");
-            capability.setCapability("browserstack.debug", "true");
+            capability.setCapability("browserstack.local", "true"); 
+            capability.setCapability("browserstack.debug", "true"); 
             capability.setCapability("browserstack.user", "rekhabhupatiraju1");// add username
             capability.setCapability("browserstack.key", "5dnGrykYjvZU5BqpKE9q"); //add automate-key
 
@@ -231,7 +255,67 @@ public class CommonLib{
 		return value;
 		
 	}
-	public static String getJobDetails() throws IOException, ParseException
+	public static JSONObject getConfiguration() throws IOException, ParseException
+	{
+		String config = null;
+		JSONObject tr = null;
+		Map<String, String> env = System.getenv();
+		for (String envName : env.keySet()) {
+			System.out.format("%s=%s%n", envName, env.get("QTE_SCHEDULED_TX_DATA"));
+		}
+		String url = env.get("QTE_SCHEDULED_TX_DATA");
+		//String url = "http://localhost:6789/job-detail/161";
+		System.out.println("url : " + url);
+		URL obj;
+		try {
+			obj = new URL(url);
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+			con.setRequestMethod("GET");
+			con.setRequestProperty("Content-Type", "application/json");		
+			con.setDoOutput(true);			
+			try {
+				InputStream response = null;		    	
+				response = con.getInputStream();
+				System.out.println("response" +response);
+				// print resulting stream
+				BufferedReader buffer = new BufferedReader(new InputStreamReader(response));
+				String inputLine;
+				//while ((inputLine = buffer.readLine()) != null)
+				inputLine = buffer.readLine();
+				System.out.println("inputLine" +inputLine);
+				Object Obj = new JSONParser().parse(inputLine);	
+					
+			     JSONObject jso = (JSONObject) Obj;	
+			     JSONObject qte = (JSONObject)jso.get("QTE");
+			     JSONArray  testrun = (JSONArray)qte.get("testRuns");
+			     tr = (JSONObject)testrun.get(0);
+			    // config = (String) tr.get("Browser Configuration");		
+			     if((String) tr.get("Browserstack")!=null)
+			     {
+			    	 config =(String) tr.get("Browserstack");
+			    	 System.out.println("browserstack" +config);
+			     }else if((String) tr.get("Browser Configuration")!=null)
+			     {
+			    	 config =(String) tr.get("Browser Configuration");
+			     }			   
+			     System.out.println("Browserstack" +config);
+			     
+				buffer.close();
+				
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//return config;
+		return tr;
+	}
+	
+	public static String uploadReport() throws IOException, ParseException
 	{
 		String config = null;
 		Map<String, String> env = System.getenv();
@@ -264,30 +348,114 @@ public class CommonLib{
 			     JSONObject qte = (JSONObject)jso.get("QTE");
 			     JSONArray  testrun = (JSONArray)qte.get("testRuns");
 			     JSONObject tr = (JSONObject)testrun.get(0);
-			    // config = (String) tr.get("Browser Configuration");		
-			     if((String) tr.get("Browserstack")!=null)
-			     {
-			    	 config =(String) tr.get("Browserstack");
-			    	 System.out.println("browserstack" +config);
-			     }else if((String) tr.get("Browser Configuration")!=null)
-			     {
-			    	 config =(String) tr.get("Browser Configuration");
+			    config = (String) tr.get("Id");	
+			    Long testrunID = Long.parseLong(config);
+			    
+			    ClientConfiguration configuration = SdkSampleUtils.createConfiguration();
+				   
+			    System.out.println("configuration " +configuration.getProperties());
+			    QTestCredentials credentials = SdkSampleUtils.getCredentials();
+			     // list project.
+			     ProjectService projectService = new ProjectServiceClient(credentials, configuration);
+			     List<Project> projects = projectService.listProject(new ListProjectRequest());
+			   
+			   /*  System.out.println("Listing all project on your site: " + projects);
+			     if (projects == null || projects.isEmpty()) {
+			       System.out.println("No project found.");
+			     } else {
+			       for (Project project : projects) {
+			         System.out.println("Project:");
+			         System.out.println(project);
+			       }
+			     }*/
+			     String project = SdkSampleUtils.getProjectId();
+			     Long projectId = Long.parseLong(project);
+			     TestExecutionService testExecutionService = new TestExecutionServiceClient(credentials, configuration);
+			     System.out.println("BEGIN list all test-runs in project ...");
+			     try {
+			       List<TestRun> testRuns = testExecutionService.listTestRun(new ListTestRunRequest().withProjectId(projectId));
+			       System.out.println("Listing all test run in project: " + projectId + ". We only display first 10 of test-runs" +testRuns.size());
+			       if (testRuns == null || testRuns.isEmpty()) {
+			         System.out.println("No test run in project");
+			       } else {
+			         int count = 0;
+			         for (TestRun testRun : testRuns) {
+			           System.out.println("TestRun: ===========================");
+			           System.out.println(testRun);
+			           count++;
+			           if (count == 10) break;
+			         }
+			       }
+			     } finally {
+			       System.out.println("END list all test-runs in project ...");
 			     }
-			    // config =(String) tr.get("Browserstack");
-			     System.out.println("Browserstack" +config);
-			     /*JSONArray ja = ts.getJSONArray("testRuns");
-			     Iterator itr2 = ts.iterator();
-		         
-			        while (itr2.hasNext()) 
-			        {
-			        	Iterator<Map.Entry> itr1 = ((Map) itr2.next()).entrySet().iterator();
-			            while (itr1.hasNext()) {
-			                Map.Entry pair = itr1.next();
-			                System.out.println(pair.getKey() + " : " + pair.getValue());
-			            }
-			        }*/
+			     List<TestRun> testRuns = testExecutionService.listTestRun(new ListTestRunRequest().withProjectId(projectId));
+			     TestRun testRun = testExecutionService.getTestRun(
+			    	        new GetTestRunRequest()
+			    	          .withProjectId(projectId)
+			    	          .withTestRunId(testrunID)
+			    	          .withExpandTestCase(true)
+			    	      );
+			     
+			     System.out.println("testRun " + testRun);
+			     System.out.println("testRuns.get(0).getId() " + testRuns.get(0).getId());
+			     System.out.println("BEGIN submit automation test log ...");
+			     List<AutomationTestStepLog> testStepLogs = new ArrayList<AutomationTestStepLog>();
+			     
+			     testStepLogs.add(
+			    	        new AutomationTestStepLog()
+			    	          .withDescription("test step 1")
+			    	          .withExpected("result 1")
+			    	          .withActualResult("result 5")
+			    	          .withStatus("FAIL")
+			    	      );
+
+			    	      testStepLogs.add(
+			    	        new AutomationTestStepLog()
+			    	          .withDescription("test step 2")
+			    	          .withExpected("result 2")
+			    	          /*.withAttachments(Collections.singletonList(
+			    	            new Attachment()
+			    	              .withName("test_step_2.txt")
+			    	              .withContentType("text/plain")
+			    	              .withData(new ByteArrayInputStream("Test Step step attachment content".getBytes()))
+			    	          ))*/
+			    	          .withStatus("PASS")
+			    	      );
+			     try {
+			    	 TestLog testLog = testExecutionService.submitAutomationTestLog(
+			    		        new AutomationTestLogRequest()
+			    		          .withProjectId(projectId)
+			    		          .withTestRunId(testrunID)
+			    		          .withSuitePerDay(false)
+			    		          .withAutomationTestLog(
+			    		            new AutomationTestLog()
+			    		              .withExecutionStartDate(new Date())
+			    		              .withExecutionEndDate(new Date())
+			    		              //.withName("AutomationTestLog")
+			    		              //.withAutomationContent("<test>AutomationContent</test>")
+			    		              .withStatus("PASS")
+			    		              //.withSystemName("TestNG")
+			    		              .withTestStepLogs(testStepLogs)
+			    		          )
+			    		      );
+			             
+			       
+
+			       System.out.println("TESTLOG result ========================");
+			       System.out.println(testLog);
+			     } catch (Exception ex) {
+			       ex.printStackTrace();
+			     } finally {
+			       System.out.println("END submit automation test log ...");
+			     } 
+			     	
+			     // view all test run.
+			    
+			     
 				buffer.close();
-				
+			//submitAutomationTestLogWithTestSteps(testExecutionService, projectId,false);
+			   
 			} catch (MalformedURLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -297,10 +465,89 @@ public class CommonLib{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		
+	     // get project id.
+	    // Long projectId = SdkSampleUtils.getProjectId();
+	   //  Long projectId = Long.parseLong(project);
+	     // create automation test log and list all test runs.
+	     /*TestDesignService testDesignService = new TestDesignServiceClient(credentials,configuration);	 
+	    
+	     List<TestCase> testCases = testDesignService.listTestCase(new ListTestCaseRequest().withProjectId(projectId));
+	     System.out.println("testCases"+testCases.size());*/
+	    // TestExecutionService testExecutionService = new TestExecutionServiceClient(credentials, configuration);
+
+	     // view all test run.
+	     
+	     
+	
 		return config;
 	
 	}
+	
+	
+	
+	protected static void submitAutomationTestLogWithTestSteps(Long  testRunID,List<AutomationTestStepLog> testStepLogs) {
+		System.out.println("BEGIN submit automation test log with test steps...");
+		try {
+			// create input stream.
+			// create list of test step log.
+			
+					
+			  ClientConfiguration configuration = SdkSampleUtils.createConfiguration();
+			   
+			    System.out.println("configuration " +configuration.getProperties());
+			    QTestCredentials credentials = SdkSampleUtils.getCredentials();
+			     // list project.
+			   
+			     String project = SdkSampleUtils.getProjectId();
+			     Long projectId = Long.parseLong(project);
+			     TestExecutionService testExecutionService = new TestExecutionServiceClient(credentials, configuration);			   
+			     System.out.println("testStepLogs submit start ");   
+			    	 TestLog testLog = testExecutionService.submitAutomationTestLog(
+			    		        new AutomationTestLogRequest()
+			    		          .withProjectId(projectId)
+			    		          .withTestRunId(testRunID)
+			    		          .withSuitePerDay(false)
+			    		          .withAutomationTestLog(
+			    		            new AutomationTestLog()
+			    		              .withExecutionStartDate(new Date())
+			    		              .withExecutionEndDate(new Date())
+			    		              //.withName("AutomationTestLog")
+			    		              //.withAutomationContent("<test>AutomationContent</test>")
+			    		              .withStatus("PASS")
+			    		              //.withSystemName("TestNG")
+			    		              .withTestStepLogs(testStepLogs)
+			    		          )
+			    		      );
+			    	 System.out.println("testStepLogs is submitted ");    
 
+			
+		} catch (Exception ex) {
+			//ex.printStackTrace();
+			System.out.println("testStepLogs is not submitted ");
+		} finally {
+			//System.out.println("END submit automation test log with test steps ...");
+		}
+	}
+
+	
+	public static void addautolog(JSONObject config,String Status, String Desc, String ExpRes, String ActRes)
+	{
+		 
+		Long testrunID = (Long) config.get("Id");	
+	     testStepLogs.add(
+	    	        new AutomationTestStepLog()
+	    	          .withDescription(Desc)
+	    	          .withExpected(ExpRes)
+	    	          .withActualResult(ActRes)
+	    	          .withStatus(Status)
+	    	      );
+	     System.out.println("testStepLogs is added " + testStepLogs.size());
+	     
+	     submitAutomationTestLogWithTestSteps(testrunID,testStepLogs );
+	    	     
+	}
 	public static boolean ElementVisible(WebElement element, int time, ExtentTest logger) {
 		boolean flag = false;
 		try {
@@ -341,7 +588,7 @@ public class CommonLib{
 	}*/
 	
 	
-	public boolean  ElementExist(WebElement element, ExtentTest logger) {
+	/*public boolean  ElementExist(WebElement element, ExtentTest logger) {
 		boolean flag = false;
 		
 		try {			
@@ -364,13 +611,40 @@ public class CommonLib{
 			
 		return flag;
 
+	}*/
+	
+	public boolean  ElementExist(WebElement element, JSONObject config) {
+		boolean flag = false;
+		
+		try {			
+				flag = element.isDisplayed();
+				System.out.println("element is displayed");
+				addautolog(config,"PASS","Verify Element Exist",element.getText() + " should be displayed in the " + driver.getTitle() + " Page",element.getText() + " is displayed in the " + driver.getTitle() + " Page");
+				//logger.log(LogStatus.PASS, "Verify Element Exist", element.getText() + " Exist in the " + driver.getTitle() + " Page");
+			
+		} catch (Exception e) {
+				//e.printStackTrace();
+				//logger.log(LogStatus.FAIL, "Verify Element Exist", "Element does not Exist" + driver.getTitle() + " Page");
+				try {
+					
+					String screenshotPath = getScreenhot(driver, "StepFailure");
+					//To add it in the extent report 
+				//	logger.log(LogStatus.FAIL, logger.addScreenCapture(screenshotPath));
+				} catch (Exception ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+		}		
+			
+		return flag;
+
 	}
 
 	public boolean ElementClick(WebElement element,ExtentTest logger) {
 		boolean flag = false;
 		try
 		{
-			ElementExist(element, logger);
+			//ElementExist(element, logger);
 			String Eletext = element.getText();
 			element.click();
 			flag = true;

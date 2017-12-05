@@ -27,7 +27,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 public class HomePage extends CommonLib {
 	
 	
-	WebDriverWait wait = new WebDriverWait(driver, 60);
+	WebDriverWait wait = new WebDriverWait(driver, 10);
 	
 
 	public WebElement LnkClasses()
